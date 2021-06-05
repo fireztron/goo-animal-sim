@@ -1,0 +1,255 @@
+--[[
+    not the greatest script
+    
+    Made by fireztron at @v3rm
+    
+]]
+repeat wait() until game:IsLoaded()
+
+local mt = getrawmetatable(game) 
+local oldnamecall = mt.__namecall
+setreadonly(mt, false)
+
+--// Always block
+mt.__namecall = newcclosure(function(self, ...)
+   local method = getnamecallmethod()
+   local Args = {...}
+   if not checkcaller() and method == "FireServer" and (Args[1] == "blockstop") and autoblock then
+       return
+   end
+   if not checkcaller() and method == "FireServer" and (Args[1] == "pose") and autoblock then
+       Args[2] = "block"
+   end
+   return oldnamecall(self, unpack(Args))
+end)
+setreadonly(mt, true)
+
+--// blockattacks 
+local function blockAttacks(remote)
+    if autoblock then
+        local args = {
+            [1] = "pose",
+            [2] = "block"
+        }
+
+        remote:FireServer(unpack(args))
+
+        local args = {
+            [1] = "pose",
+            [2] = "successblock"
+        }
+
+        remote:FireServer(unpack(args))
+
+        local args = {
+            [1] = "blockstart"
+        }
+
+        remote:FireServer(unpack(args))
+        print("blocking")
+    end
+end
+
+--// ESSENTIAL VARS
+local RS = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local humanoids = {}
+
+--// GET HUMS TABLE
+local function getHums()
+    local hums = {}
+    for _, plr in pairs(Players:GetPlayers()) do
+        local char = plr.Character
+        if plr ~= LP and plr.Team ~= LP.Team and char then
+            local hum = plr.Character:FindFirstChild("Humanoid")
+            if hum then
+                table.insert(hums, hum)
+            end
+        end
+    end
+    return hums
+end
+
+
+--// Always block
+local LPChar = LP.Character
+do
+    if LPChar then
+        local weapon = LPChar:FindFirstChildOfClass("Tool")
+        if weapon then
+            local remote = weapon:FindFirstChild("remote")
+            if remote then
+                blockAttacks(remote)
+            end
+        end
+        LPChar.ChildAdded:Connect(function(weapon)
+            if weapon:IsA("Tool") then
+                local remote = weapon:WaitForChild("remote")
+                blockAttacks(remote)
+            end
+        end)
+    end
+    LP.CharacterAdded:Connect(function(char)
+        LPChar.ChildAdded:Connect(function(weapon)
+            if weapon:IsA("Tool") then
+                local remote = weapon:WaitForChild("remote")
+                blockAttacks(remote)
+            end
+        end)
+    end)
+end
+
+
+--// LOOP
+coroutine.wrap(function() --apparently coroutine's better
+    while true do
+        for _,hum in ipairs(getHums()) do
+            local LPChar = LP.Character
+            if hum.Parent and LPChar then
+                local enemyhrp = hum.Parent:FindFirstChild("HumanoidRootPart")
+                local hrp = LPChar:FindFirstChild("HumanoidRootPart")
+                if enemyhrp and hrp and (enemyhrp.Position - hrp.Position).Magnitude < 10 then
+                    local weapon = LPChar:FindFirstChildOfClass("Tool")
+                    local characterremote = LPChar:FindFirstChild("characterremote")
+                    if weapon then
+                        local weaponName = weapon.Name
+                        local remote = weapon:FindFirstChild("remote")
+                        if remote then
+                            if autoattack then
+                                --// Stamina regen false
+                                local args = {
+                                    [1] = "canstaminaregen",
+                                    [2] = false
+                                }
+                                characterremote:FireServer(unpack(args))
+
+                                --// Pose
+                                local args = {
+                                    [1] = "pose",
+                                    [2] = "charge1"
+                                }
+                                remote:FireServer(unpack(args))
+
+                                --// Remove 0 stamina
+                                local args = {
+                                    [1] = "removestamina",
+                                    [2] = .1
+                                }
+                                characterremote:FireServer(unpack(args))
+                                                                
+                                --// Weak punch
+                                local args = {
+                                    [1] = "damage",
+                                    [2] = hum,
+                                    [3] = 14, --damage
+                                    [4] = enemyhrp,
+                                    [5] = weaponName:lower():sub(1, #weaponName - 1) .. "Jab" -- clawJab or fistJab
+                                }
+                                --remote:FireServer(unpack(args))
+                                --wait(.5)
+
+                                --// Meme punch
+                                local args = {
+                                    [1] = "damage",
+                                    [2] = hum,
+                                    [3] = 5,
+                                    [4] = enemyhrp,
+                                    [5] = weaponName:lower():sub(1, #weaponName - 1) .. "Backstab" -- clawJab or fistJab
+                                }
+                                --remote:FireServer(unpack(args))
+                                wait(.5)
+
+                                --// Charge punch
+                                local args = {
+                                    [1] = "damage",
+                                    [2] = hum,
+                                    [3] = 5, --damage
+                                    [4] = enemyhrp,
+                                    [5] = weaponName:lower():sub(1, #weaponName - 1) .. "Charge" -- clawJab or fistJab
+                                }
+                                --remote:FireServer(unpack(args))
+                                --wait(.5)
+
+                                --// You parried
+                                local args = {
+                                    [1] = "youparried",
+                                    [2] = enemyhrp
+                                }
+
+                                remote:FireServer(unpack(args))
+                                print("parrying")
+                                wait(.5)
+
+                                --// Stamina regen false
+                                local args = {
+                                    [1] = "canstaminaregen",
+                                    [2] = true
+                                }
+
+                                characterremote:FireServer(unpack(args))
+
+                                --// Pose
+                                local args = {
+                                    [1] = "pose",
+                                    [2] = "jab"
+                                }
+                                remote:FireServer(unpack(args))
+
+                                --// Pose
+                                local args = {
+                                    [1] = "pose",
+                                    [2] = "idle"
+                                }
+                                remote:FireServer(unpack(args))
+                                print("fired done.")
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        RS.Heartbeat:Wait()
+    end
+end)()
+
+warn("loaded thingy")
+
+--// For Non-Synapse Users (credits to egg salad)
+if not pcall(function() return syn.protect_gui end) then
+    syn = {}
+    syn.protect_gui = function(egg)
+        egg.Parent = game.CoreGui
+    end
+end
+
+--// lib stuff uwuware i think
+local lib = loadstring(game:HttpGet('https://raw.githubusercontent.com/fireztron/uwuware-ui-library/main/ui.lua', true))()
+local window = lib:CreateWindow('goo animal GUI')
+window:AddLabel({text = "fireztron @ v3rmillion"})
+--// auto attack UI
+window:AddToggle({text = 'Kill aura', state = autoattack, callback = function(v) 
+    autoattack = v; 
+end})
+--// godmode UI
+window:AddToggle({text = 'Auto block', state = autoblock, callback = function(v) 
+    autoblock = v; 
+    local LPChar = LP.Character
+    if LPChar then
+        local weapon = LPChar:FindFirstChildOfClass("Tool")
+        if weapon then
+            local remote = weapon:FindFirstChild("remote")
+            if remote then
+                blockAttacks(remote)
+            end
+        end
+    end
+end})
+
+--// Init library
+lib:Init()
+
+--[[
+local ohString1 = "blockstart"
+
+game.Players.LocalPlayer.Character.Fists.remote:FireServer(ohString1)]]
